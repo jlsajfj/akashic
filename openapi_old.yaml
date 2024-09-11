@@ -8,7 +8,7 @@ servers:
   - url: http://localhost:5231
 
 paths:
-  /log:
+  /post:
     post:
       summary: Send a log message
       description: Send a log message to be processed and stored by the server.
