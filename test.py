@@ -3,7 +3,7 @@ import json
 
 
 def send_log(name, level, message):
-    url = "http://localhost:5231/post"
+    url = "http://localhost:5231/log"
     headers = {"Content-Type": "application/json"}
     data = {"name": name, "level": level, "message": message}
     response = requests.post(url, headers=headers, json=data)
