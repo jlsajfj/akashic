@@ -60,11 +60,24 @@ def main():
     server_address = ("", 5231)
     httpd = HTTPServer(server_address, LoggingHandler)
     print(f"Server running on port 5231")
+    log_data = {
+        "level": "INFO",
+        "message": "Server running on port 5231",
+        "name": "akashic",
+    }
+    LoggingHandler.process_log(None, log_data)
     try:
         cursor.hide()
         httpd.serve_forever()
     except KeyboardInterrupt:
         print("Server stopped.")
+        log_data = {"level": "INFO", "message": "Server stopped.", "name": "akashic"}
+        LoggingHandler.process_log(None, log_data)
+    except Exception as e:
+        error_message = f"Critical server error: {str(e)}"
+        log_data = {"level": "CRITICAL", "message": error_message, "name": "akashic"}
+        LoggingHandler.process_log(None, log_data)
+        print(error_message)
     finally:
         cursor.show()
         httpd.server_close()
