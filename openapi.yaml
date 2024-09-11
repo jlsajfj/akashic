@@ -1,0 +1,52 @@
+openapi: 3.0.0
+info:
+  title: Akashic Logging Server
+  description: A simple logging server that receives log messages via HTTP POST requests.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5231
+
+paths:
+  /post:
+    post:
+      summary: Send a log message
+      description: Send a log message to be processed and stored by the server.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogMessage'
+      responses:
+        '200':
+          description: Log received and processed successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Log received and processed"
+        '400':
+          description: Invalid JSON data
+        '404':
+          description: Endpoint not found
+
+components:
+  schemas:
+    LogMessage:
+      type: object
+      properties:
+        level:
+          type: string
+          enum: [DEBUG, INFO, WARNING, ERROR, CRITICAL]
+          default: INFO
+          description: The log level
+        message:
+          type: string
+          description: The log message content
+        name:
+          type: string
+          default: default
+          description: The logger name
+      required:
+        - message
