@@ -26,21 +26,19 @@ class DualHandler(logging.Handler):
         self.stream_handler.emit(record)
 
 
-akashic_logger = logging.getLogger("akashic")
-akashic_logger.setLevel(logging.INFO)
-dual_handler = DualHandler("akashic.log")
-akashic_logger.addHandler(dual_handler)
+# Configure unified logging
+akashic_handler = DualHandler("akashic.log")
 
-server_logger = logging.getLogger("server")
-server_logger.setLevel(logging.INFO)
-server_file_handler = logging.FileHandler("server.log")
-server_file_handler.setFormatter(
-    logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-)
-server_stream_handler = logging.StreamHandler(sys.stdout)
-server_stream_handler.setFormatter(CustomFormatter())
-server_logger.addHandler(server_file_handler)
-server_logger.addHandler(server_stream_handler)
+
+def get_logger(name):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(akashic_handler)
+    return logger
+
+
+# Get loggers
+server_logger = get_logger("akashic")
 
 
 class LoggingHandler(http.server.SimpleHTTPRequestHandler):
@@ -56,13 +54,9 @@ class LoggingHandler(http.server.SimpleHTTPRequestHandler):
                 message = data.get("message", "")
                 name = data.get("name", "default")
 
-                # Create a logger with the provided name
-                named_logger = logging.getLogger(name)
-                named_logger.setLevel(logging.INFO)
-                named_logger.addHandler(dual_handler)
-
                 # Log the message using the named logger
-                log_func = getattr(named_logger, level.lower(), named_logger.info)
+                logger = get_logger(name)
+                log_func = getattr(logger, level.lower(), logger.info)
                 log_func(message)
 
                 self.send_response(200)
