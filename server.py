@@ -6,12 +6,20 @@ import logging
 import sys
 
 
-# Configure logging for received logs
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+        return f"{record.levelname:<5} [{record.name}]: {record.getMessage()}"
+
+
 class DualHandler(logging.Handler):
     def __init__(self, file_path):
         super().__init__()
         self.file_handler = logging.FileHandler(file_path)
+        self.file_handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+        )
         self.stream_handler = logging.StreamHandler(sys.stdout)
+        self.stream_handler.setFormatter(CustomFormatter())
 
     def emit(self, record):
         self.file_handler.emit(record)
@@ -21,20 +29,18 @@ class DualHandler(logging.Handler):
 akashic_logger = logging.getLogger("akashic")
 akashic_logger.setLevel(logging.INFO)
 dual_handler = DualHandler("akashic.log")
-dual_handler.setFormatter(
-    logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-)
 akashic_logger.addHandler(dual_handler)
 
-# Configure logging for server operations
 server_logger = logging.getLogger("server")
 server_logger.setLevel(logging.INFO)
-server_handler = logging.FileHandler("server.log")
-server_handler.setFormatter(
+server_file_handler = logging.FileHandler("server.log")
+server_file_handler.setFormatter(
     logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 )
-server_logger.addHandler(server_handler)
-server_logger.addHandler(logging.StreamHandler(sys.stdout))
+server_stream_handler = logging.StreamHandler(sys.stdout)
+server_stream_handler.setFormatter(CustomFormatter())
+server_logger.addHandler(server_file_handler)
+server_logger.addHandler(server_stream_handler)
 
 
 class LoggingHandler(http.server.SimpleHTTPRequestHandler):
@@ -46,7 +52,7 @@ class LoggingHandler(http.server.SimpleHTTPRequestHandler):
 
             try:
                 data = json.loads(post_data.decode("utf-8"))
-                level = data.get("level", "INFO")
+                level = data.get("level", "INFO").upper()
                 message = data.get("message", "")
                 name = data.get("name", "default")
 
