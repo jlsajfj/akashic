@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 import logging
 import sys
 import os
+import cursor
 
 # Define the path for akashic.log
 AKASHIC_LOG = "/var/log/akashic.log"
@@ -141,8 +142,10 @@ if __name__ == "__main__":
                 f"Unable to write logs to {AKASHIC_LOG}. Logs will only be printed to console."
             )
         try:
+            cursor.hide()
             httpd.serve_forever()
         except KeyboardInterrupt:
             server_logger.info("Server stopped.")
         finally:
+            cursor.show()
             httpd.server_close()
