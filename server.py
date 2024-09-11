@@ -110,11 +110,6 @@ class LoggingHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(b"Log received and processed")
-
-                # Log the successful operation using server_logger
-                server_logger.info(
-                    f"Processed log: name={name}, level={level}, message={message}"
-                )
             except json.JSONDecodeError:
                 self.send_error(400, "Invalid JSON data")
                 server_logger.error("Received invalid JSON data")
