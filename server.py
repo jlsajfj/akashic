@@ -22,7 +22,7 @@ akashic_logger = logging.getLogger("akashic")
 akashic_logger.setLevel(logging.INFO)
 dual_handler = DualHandler("akashic.log")
 dual_handler.setFormatter(
-    logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 )
 akashic_logger.addHandler(dual_handler)
 
@@ -48,10 +48,16 @@ class LoggingHandler(http.server.SimpleHTTPRequestHandler):
                 data = json.loads(post_data.decode("utf-8"))
                 level = data.get("level", "INFO")
                 message = data.get("message", "")
+                name = data.get("name", "default")
 
-                # Log the message using akashic_logger
-                log_func = getattr(akashic_logger, level.lower(), akashic_logger.info)
-                log_func(f"{message}")
+                # Create a logger with the provided name
+                named_logger = logging.getLogger(name)
+                named_logger.setLevel(logging.INFO)
+                named_logger.addHandler(dual_handler)
+
+                # Log the message using the named logger
+                log_func = getattr(named_logger, level.lower(), named_logger.info)
+                log_func(message)
 
                 self.send_response(200)
                 self.send_header("Content-type", "text/plain")
@@ -59,7 +65,9 @@ class LoggingHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(b"Log received and processed")
 
                 # Log the successful operation using server_logger
-                server_logger.info(f"Processed log: level={level}, message={message}")
+                server_logger.info(
+                    f"Processed log: name={name}, level={level}, message={message}"
+                )
             except json.JSONDecodeError:
                 self.send_error(400, "Invalid JSON data")
                 server_logger.error("Received invalid JSON data")
