@@ -3,6 +3,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import pika
 from urllib.parse import urlparse, parse_qs
 import cursor
+import time
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = "localhost"
@@ -51,6 +52,9 @@ class LoggingHandler(BaseHTTPRequestHandler):
             exchange=RABBITMQ_EXCHANGE,
             routing_key=routing_key,
             body=message,
+            properties=pika.spec.BasicProperties(
+                timestamp=int(time.time() * 1000)
+            ),
         )
 
         connection.close()
