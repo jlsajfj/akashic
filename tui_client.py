@@ -106,7 +106,7 @@ def update_display(stdscr):
         data = [d for d in data if d["name"] == names[selected_name]]
 
     for i, log in enumerate(data):
-        if i >= height - 2:
+        if i >= height - 3:
             break
 
         secondary_color = curses.color_pair(1)
@@ -142,10 +142,12 @@ def update_display(stdscr):
         )
 
     for i, level in enumerate(LOG_LEVELS):
+        stdscr.addstr(i + 2, width - 10, " ")
         if i == selected_level:
             stdscr.addstr(i + 2, width - 9, level, curses.A_REVERSE)
         else:
             stdscr.addstr(i + 2, width - 9, level)
+        stdscr.addstr(i + 2, width - 9 + len(level), " " * (9 - len(level)))
     stdscr.refresh()
 
 
