@@ -3,8 +3,14 @@ import asyncio
 import json
 import curses
 from collections import deque
+import datetime
 
-log_data = deque(maxlen=100)  # Store up to 100 log entries
+LOG_LEVELS = ["Critical", "Error", "Warning", "Info", "Debug", "All"]
+log_data = {level.lower(): deque(maxlen=500) for level in LOG_LEVELS}
+names = ["All"]
+selected_level = 5
+selected_name = 0
+
 
 async def main(stdscr):
     # RabbitMQ connection
@@ -19,8 +25,19 @@ async def main(stdscr):
             async with message.process():
                 body = message.body.decode()
                 level, name = message.routing_key.split(".")
-                data = {"message": body, "level": level.upper(), "name": name}
-                log_data.appendleft(data)  # Add the data to the global deque
+                if name not in names:
+                    names.append(name)
+                timestamp = message.timestamp.astimezone(
+                    datetime.timezone(datetime.timedelta(hours=-4))
+                ).strftime("%H:%M:%S")
+                data = {
+                    "message": body,
+                    "level": level.upper(),
+                    "name": name,
+                    "timestamp": timestamp,
+                }
+                log_data["all"].appendleft(data)
+                log_data[level].appendleft(data)
                 update_display(stdscr)
         except Exception as e:
             print(f"Error processing message: {e}")
@@ -39,32 +56,109 @@ async def main(stdscr):
     finally:
         await connection.close()
 
+
 async def check_quit(stdscr):
+    global selected_level, selected_name, max_name_index
     try:
         key = stdscr.getkey()
-        return key.lower() == 'q'
+        if key.lower() == "q":
+            return True
+        elif key == "KEY_UP":
+            selected_level = max(0, selected_level - 1)
+            update_display(stdscr)
+        elif key == "KEY_DOWN":
+            selected_level = min(5, selected_level + 1)
+            update_display(stdscr)
+        elif key == "KEY_LEFT":
+            selected_name = max(0, selected_name - 1)
+            update_display(stdscr)
+        elif key == "KEY_RIGHT":
+            selected_name = min(len(names) - 1, selected_name + 1)
+            update_display(stdscr)
+        return False
     except curses.error:
         return False
+
 
 def update_display(stdscr):
     stdscr.clear()
     height, width = stdscr.getmaxyx()
-    
-    for i, log in enumerate(log_data):
-        if i >= height - 1:
+    stdscr.addstr(0, width // 2 - 6, "akashic logs")
+
+    cur_len = 1
+    for i, name in enumerate(names):
+        if i == selected_name:
+            stdscr.addstr(1, cur_len, name, curses.A_REVERSE)
+        else:
+            stdscr.addstr(1, cur_len, name)
+        cur_len += len(name) + 1
+
+    curses.init_pair(1, curses.COLOR_WHITE, -1)
+    curses.init_pair(2, curses.COLOR_RED, -1)
+    curses.init_pair(3, curses.COLOR_YELLOW, -1)
+    curses.init_pair(4, curses.COLOR_GREEN, -1)
+    curses.init_pair(5, curses.COLOR_BLUE, -1)
+    curses.init_pair(6, curses.COLOR_CYAN, -1)
+
+    data = log_data[LOG_LEVELS[selected_level].lower()]
+
+    if selected_name != 0:
+        data = [d for d in data if d["name"] == names[selected_name]]
+
+    for i, log in enumerate(data):
+        if i >= height - 2:
             break
-        log_line = f"{log['level']} - {log['name']}: {log['message']}"
-        stdscr.addstr(i, 0, log_line[:width-1])
-    
+
+        secondary_color = curses.color_pair(1)
+        level = log["level"]
+        if level == "CRITICAL":
+            color_pair = curses.color_pair(2)
+            secondary_color = curses.color_pair(2)
+        elif level == "ERROR":
+            color_pair = curses.color_pair(2)
+        elif level == "WARNING":
+            color_pair = curses.color_pair(3)
+        elif level == "INFO":
+            color_pair = curses.color_pair(1)
+        else:
+            color_pair = curses.color_pair(4)
+
+        timestamp = log["timestamp"]
+        log_line = f" {log['level']:<9} {log['name']:<10} {log['message']}"
+        stdscr.addstr(i + 2, 0, " " + timestamp, curses.color_pair(6))
+        stdscr.addstr(
+            i + 2,
+            len(timestamp) + 1,
+            " {:<9}".format(log["level"]),
+            color_pair,
+        )
+        formatted_name = "{:<10} ".format(log["name"])
+        stdscr.addstr(i + 2, len(timestamp) + 11, formatted_name, curses.color_pair(5))
+        stdscr.addstr(
+            i + 2,
+            len(timestamp) + 12 + len(formatted_name),
+            log["message"],
+            secondary_color,
+        )
+
+    for i, level in enumerate(LOG_LEVELS):
+        if i == selected_level:
+            stdscr.addstr(i + 2, width - 9, level, curses.A_REVERSE)
+        else:
+            stdscr.addstr(i + 2, width - 9, level)
     stdscr.refresh()
 
+
 def run_tui(stdscr):
-    curses.curs_set(0)  # Hide the cursor
+    curses.curs_set(0)
+    curses.start_color()
+    curses.use_default_colors()
     stdscr.clear()
     stdscr.refresh()
-    stdscr.nodelay(True)  # Set getch() to non-blocking
-    
+    stdscr.nodelay(True)
+
     asyncio.run(main(stdscr))
+
 
 if __name__ == "__main__":
     curses.wrapper(run_tui)

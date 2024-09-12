@@ -75,7 +75,7 @@ def main():
         httpd.serve_forever()
     except KeyboardInterrupt:
         print("Server stopped.")
-        log_data = {"level": "INFO", "message": "Server stopped.", "name": "akashic"}
+        log_data = {"level": "WARNING", "message": "Server stopped.", "name": "akashic"}
         LoggingHandler.process_log(None, log_data)
     except Exception as e:
         error_message = f"Critical server error: {str(e)}"
