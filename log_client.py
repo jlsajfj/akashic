@@ -15,13 +15,12 @@ queue_name = result.method.queue
 def callback(ch, method, properties, body):
     try:
         log_message = body.decode("utf-8")
-        level = method.routing_key.split(".")[0]
-        name = method.routing_key.split(".")[1]
+        routing_key = method.routing_key
+        level, name = routing_key.split(".")
+        timestamp = properties.timestamp
         with open(AKASHIC_LOG, "a") as f:
-            print(
-                f"{properties.timestamp} - {level} - {name} - {log_message}", file=f
-            )
-        print(f"[{level}] [{name}] {log_message}")
+            print(f"{timestamp} - {level} - {name} - {log_message}", file=f)
+        print(f" [{timestamp}] {routing_key}")
     except Exception as e:
         print(f"Error processing message: {e}")
 
