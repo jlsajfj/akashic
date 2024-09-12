@@ -85,28 +85,13 @@ def update_display(stdscr):
     height, width = stdscr.getmaxyx()
     stdscr.addstr(0, width // 2 - 6, "akashic logs")
 
-    cur_len = 1
-    for i, name in enumerate(names):
-        if i == selected_name:
-            stdscr.addstr(1, cur_len, name, curses.A_REVERSE)
-        else:
-            stdscr.addstr(1, cur_len, name)
-        cur_len += len(name) + 1
-
-    curses.init_pair(1, curses.COLOR_WHITE, -1)
-    curses.init_pair(2, curses.COLOR_RED, -1)
-    curses.init_pair(3, curses.COLOR_YELLOW, -1)
-    curses.init_pair(4, curses.COLOR_GREEN, -1)
-    curses.init_pair(5, curses.COLOR_BLUE, -1)
-    curses.init_pair(6, curses.COLOR_CYAN, -1)
-
     data = log_data[LOG_LEVELS[selected_level].lower()]
 
     if selected_name != 0:
         data = [d for d in data if d["name"] == names[selected_name]]
 
     for i, log in enumerate(data):
-        if i >= height - 3:
+        if i >= height - 2:
             break
 
         secondary_color = curses.color_pair(1)
@@ -123,31 +108,44 @@ def update_display(stdscr):
         else:
             color_pair = curses.color_pair(4)
 
+        y = i + 1
+
         timestamp = log["timestamp"]
         log_line = f" {log['level']:<9} {log['name']:<10} {log['message']}"
-        stdscr.addstr(i + 2, 0, " " + timestamp, curses.color_pair(6))
+        stdscr.addstr(y, 0, " " + timestamp, curses.color_pair(6))
         stdscr.addstr(
-            i + 2,
+            y,
             len(timestamp) + 1,
             " {:<9}".format(log["level"]),
             color_pair,
         )
         formatted_name = "{:<10} ".format(log["name"])
-        stdscr.addstr(i + 2, len(timestamp) + 11, formatted_name, curses.color_pair(5))
+        stdscr.addstr(y, len(timestamp) + 11, formatted_name, curses.color_pair(5))
         stdscr.addstr(
-            i + 2,
+            y,
             len(timestamp) + 12 + len(formatted_name),
             log["message"],
             secondary_color,
         )
 
     for i, level in enumerate(LOG_LEVELS):
-        stdscr.addstr(i + 2, width - 10, " ")
+        y = height - len(LOG_LEVELS) + i - 1
+        stdscr.addstr(y, width - 10, " ")
         if i == selected_level:
-            stdscr.addstr(i + 2, width - 9, level, curses.A_REVERSE)
+            stdscr.addstr(y, width - 9, level, curses.A_REVERSE)
         else:
-            stdscr.addstr(i + 2, width - 9, level)
-        stdscr.addstr(i + 2, width - 9 + len(level), " " * (9 - len(level)))
+            stdscr.addstr(y, width - 9, level)
+        stdscr.addstr(y, width - 9 + len(level), " " * (9 - len(level)))
+
+    stdscr.addstr(height - 1, 0, " " * (width - 1))
+    cur_len = 1
+    for i, name in enumerate(names):
+        if i == selected_name:
+            stdscr.addstr(height - 1, cur_len, name, curses.A_REVERSE)
+        else:
+            stdscr.addstr(height - 1, cur_len, name)
+        cur_len += len(name) + 1
+
     stdscr.refresh()
 
 
@@ -155,6 +153,12 @@ def run_tui(stdscr):
     curses.curs_set(0)
     curses.start_color()
     curses.use_default_colors()
+    curses.init_pair(1, curses.COLOR_WHITE, -1)
+    curses.init_pair(2, curses.COLOR_RED, -1)
+    curses.init_pair(3, curses.COLOR_YELLOW, -1)
+    curses.init_pair(4, curses.COLOR_GREEN, -1)
+    curses.init_pair(5, curses.COLOR_BLUE, -1)
+    curses.init_pair(6, curses.COLOR_CYAN, -1)
     stdscr.clear()
     stdscr.refresh()
     stdscr.nodelay(True)
